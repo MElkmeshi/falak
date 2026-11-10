@@ -45,7 +45,7 @@ return [
         'adfali' => [
             'enabled' => (bool) env('FALAK_PAY_ADFALI', false),
             'label' => env('FALAK_PAY_ADFALI_LABEL', 'Edfali (Libyana)'),
-            'base_url' => env('ADFALI_BASE_URL', 'http://62.240.55.2:6187/BCDUssd/Edfali.asmx'),
+            'base_url' => env('ADFALI_BASE_URL', 'https://edfali.bcd.ly/api/BCDUssd/NewEdfali.asmx'),
             'merchant_mobile' => env('ADFALI_MERCHANT_MOBILE'),
             'merchant_pin' => env('ADFALI_MERCHANT_PIN'),
             'service_password' => env('ADFALI_SERVICE_PASSWORD'),
@@ -53,7 +53,7 @@ return [
         ],
         'onepay' => [
             'enabled' => (bool) env('FALAK_PAY_ONEPAY', false),
-            'base_url' => env('ONEPAY_BASE_URL', 'https://masarat.hajat.com.ly/YusorOnline'),
+            'base_url' => env('ONEPAY_BASE_URL', 'https://yussor-pay-online.mitflink.ly:40120/YusorOnline'),
             'cert_path' => env('ONEPAY_CERT_PATH'),
             'key_path' => env('ONEPAY_KEY_PATH'),
             'ca_path' => env('ONEPAY_CA_PATH'),
