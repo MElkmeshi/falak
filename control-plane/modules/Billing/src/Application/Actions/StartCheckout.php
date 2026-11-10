@@ -28,7 +28,7 @@ final class StartCheckout
             throw ValidationException::withMessages(['currency' => 'Unsupported currency.']);
         }
 
-        $gateway = $this->gateways->get($provider);
+        $gateway = $this->gateways->get($provider, $currency);
 
         $payment = Payment::query()->create([
             'organization_id' => $organizationId,

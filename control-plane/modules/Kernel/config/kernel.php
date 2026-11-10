@@ -48,6 +48,12 @@ return [
     | Icon library the canvas icon picker searches and loads picked icons from (Cool Icons: /search.json, /i/<slug>.svg).
     | Empty: no picker, only the logos bundled with the panel.
     */
+    'csp' => [
+        'script_src' => [],
+        'frame_src' => [],
+        'connect_src' => [],
+    ],
+
     'icons_url' => rtrim((string) env('FALAK_ICONS_URL', 'https://coolicon.falak.sh'), '/'),
 
 ];

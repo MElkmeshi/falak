@@ -47,24 +47,27 @@ class HandleInertiaRequests extends Middleware
             ? $icons['scheme'].'://'.$icons['host'].(isset($icons['port']) ? ':'.$icons['port'] : '')
             : '';
 
-        return implode('; ', [
+        $extra = fn (string $directive) => implode(' ', array_map('strval', (array) config("kernel.csp.{$directive}", [])));
+
+        return implode('; ', array_filter([
             "default-src 'self'",
-            "script-src 'self' 'nonce-{$nonce}'",
+            trim("script-src 'self' 'nonce-{$nonce}' {$extra('script_src')}"),
             // React style props, Radix, Monaco, xterm and the Inertia progress bar set inline styles.
             "style-src 'self' 'unsafe-inline'",
             // Template and service icons may come from any HTTPS host (catalog repositories, Cool Icons).
             "img-src 'self' data: blob: https:",
             "font-src 'self' data:",
             // wss: Reverb (same host behind the edge; listed for browsers whose 'self' does not cover wss).
-            trim("connect-src 'self' wss: {$iconsOrigin}"),
+            trim("connect-src 'self' wss: {$iconsOrigin} {$extra('connect_src')}"),
             // Monaco's editor and TypeScript workers.
             "worker-src 'self' blob:",
+            $extra('frame_src') !== '' ? "frame-src 'self' {$extra('frame_src')}" : null,
             "frame-ancestors 'self'",
             "base-uri 'self'",
             "object-src 'none'",
             // The GitHub App manifest flow submits a real form to GitHub (or a GitHub Enterprise host).
             "form-action 'self' https:",
-        ]);
+        ]));
     }
 
     /**

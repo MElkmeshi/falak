@@ -3,7 +3,6 @@
 namespace Falak\Billing\Infrastructure\Payments;
 
 use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 final class AdfaliClient
@@ -13,6 +12,7 @@ final class AdfaliClient
         private readonly string $merchantMobile,
         private readonly string $merchantPin,
         private readonly string $servicePassword,
+        private readonly ?string $proxy = null,
     ) {}
 
     public function initiate(string $customerMobile, float $amount): string
@@ -26,23 +26,23 @@ final class AdfaliClient
         ]);
 
         return match (strtoupper($value)) {
-            'PW1' => throw new RuntimeException('Adfali rejected the service password.'),
-            'PW' => throw new RuntimeException('Adfali rejected the merchant PIN.'),
-            'LIMIT' => throw new RuntimeException('The amount is over your Adfali limit.'),
-            'ACC' => throw new RuntimeException('No Adfali account for this mobile number.'),
-            'BAL' => throw new RuntimeException('Not enough balance in the Adfali account.'),
+            'PW1' => throw new RuntimeException('Edfali rejected the service password.'),
+            'PW' => throw new RuntimeException('Edfali rejected the merchant PIN.'),
+            'LIMIT' => throw new RuntimeException('The amount is over your Edfali limit.'),
+            'ACC' => throw new RuntimeException('No Edfali account for this mobile number.'),
+            'BAL' => throw new RuntimeException('Not enough balance in the Edfali account.'),
             default => $value,
         };
     }
 
     public function confirm(string $sessionId, string $customerPin): bool
     {
-        return $this->call('OnlineConfTrans', 'OnlineConfTransResult', [
+        return strtoupper($this->call('OnlineConfTrans', 'OnlineConfTransResult', [
             'Mobile' => $this->merchantMobile,
             'Pin' => $customerPin,
             'sessionID' => $sessionId,
             'PW' => $this->servicePassword,
-        ]) === 'OK';
+        ])) === 'OK';
     }
 
     private function call(string $method, string $resultTag, array $params): string
@@ -56,21 +56,21 @@ final class AdfaliClient
             ."<{$method} xmlns=\"http://tempuri.org/\">{$fields}</{$method}></soap:Body></soap:Envelope>";
 
         try {
-            $response = Http::withHeaders(['SOAPAction' => "http://tempuri.org/{$method}"])
-                ->timeout(30)->withBody($envelope, 'text/xml; charset=utf-8')->post(rtrim($this->baseUrl, '/'));
+            $response = GatewayHttp::request($this->proxy)->withHeaders(['SOAPAction' => "http://tempuri.org/{$method}"])
+                ->withBody($envelope, 'text/xml; charset=utf-8')->post(rtrim($this->baseUrl, '/'));
         } catch (ConnectionException) {
-            throw new RuntimeException('Could not reach Adfali.');
+            throw new RuntimeException('Could not reach Edfali.');
         }
 
         if (! $response->ok()) {
-            throw new RuntimeException("Adfali answered HTTP {$response->status()}.");
+            throw new RuntimeException("Edfali answered HTTP {$response->status()}.");
         }
 
         $xml = @simplexml_load_string($response->body());
         $nodes = $xml === false ? [] : ($xml->xpath("//*[local-name()='{$resultTag}']") ?: []);
 
         if ($nodes === []) {
-            throw new RuntimeException('Adfali sent an unreadable answer.');
+            throw new RuntimeException('Edfali sent an unreadable answer.');
         }
 
         return trim((string) $nodes[0]);

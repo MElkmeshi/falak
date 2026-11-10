@@ -31,6 +31,11 @@ final readonly class GatewayStep
         return new self(self::PAID, $message);
     }
 
+    public static function redirect(string $message, ?string $url = null): self
+    {
+        return new self(self::REDIRECT, $message, redirectUrl: $url);
+    }
+
     public static function review(string $message): self
     {
         return new self(self::REVIEW, $message);

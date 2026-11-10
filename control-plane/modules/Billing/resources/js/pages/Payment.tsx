@@ -1,6 +1,8 @@
 import { Button, Callout, Field, Input, Section, StatusPill } from '@/components/falak';
 import { Link, useForm } from '@inertiajs/react';
 import { type FormEvent } from 'react';
+import { MoamalatWindow } from '../components/moamalat-window';
+import { usePoll } from '../components/space-bits';
 import { SpaceLayout } from '../components/space-layout';
 import { type PaymentRow, PAYMENT_TONE } from '../types';
 
@@ -11,6 +13,7 @@ interface Props {
 
 export default function Payment({ payment, step }: Props) {
     const form = useForm({ otp: '' });
+    usePoll(payment.status === 'awaiting_gateway', 'payment,step', 5000);
 
     const submit = (e: FormEvent) => {
         e.preventDefault();
@@ -44,6 +47,8 @@ export default function Payment({ payment, step }: Props) {
                         </form>
                     </Section>
                 )}
+
+                {payment.status === 'awaiting_gateway' && payment.provider === 'moamalat' && <MoamalatWindow paymentId={payment.id} />}
 
                 {payment.status === 'awaiting_review' && (
                     <Callout tone="warning" title="Waiting for review">

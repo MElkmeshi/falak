@@ -7,6 +7,7 @@ enum PaymentStatus: string
     case Pending = 'pending';
     case AwaitingOtp = 'awaiting_otp';
     case AwaitingReview = 'awaiting_review';
+    case AwaitingGateway = 'awaiting_gateway';
     case Paid = 'paid';
     case Failed = 'failed';
     case Rejected = 'rejected';

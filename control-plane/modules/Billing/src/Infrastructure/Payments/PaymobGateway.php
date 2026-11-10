@@ -23,6 +23,11 @@ final class PaymobGateway implements PaymentGateway
         return false;
     }
 
+    public function currencies(): array
+    {
+        return ['EGP'];
+    }
+
     public function startFields(): array
     {
         return [];

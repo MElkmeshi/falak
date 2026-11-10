@@ -21,6 +21,7 @@ const PAYMENT_LABEL: Record<PaymentRow['status'], { label: string; className: st
     pending: { label: 'Started', className: 'text-fg-muted' },
     awaiting_otp: { label: 'Waiting for code', className: 'text-warning' },
     awaiting_review: { label: 'Being checked', className: 'text-warning' },
+    awaiting_gateway: { label: 'Waiting for the bank', className: 'text-info' },
     paid: { label: 'Paid', className: 'text-success' },
     failed: { label: 'Failed', className: 'text-danger' },
     rejected: { label: 'Rejected', className: 'text-danger' },
@@ -36,7 +37,7 @@ export default function PlanPage({ subscription, plans, payments, gateways, curr
         if (choosing) checkoutRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, [choosing]);
 
-    const pending = payments.find((p) => p.status === 'awaiting_otp' || p.status === 'awaiting_review');
+    const pending = payments.find((p) => p.status === 'awaiting_otp' || p.status === 'awaiting_review' || p.status === 'awaiting_gateway');
 
     return (
         <SpaceLayout title="Plan" description="Pay for 30 days at a time. Renewing adds 30 more days; your apps keep running.">
@@ -113,7 +114,7 @@ export default function PlanPage({ subscription, plans, payments, gateways, curr
                                     key={`${choosing.id}-${currency}`}
                                     plan={choosing}
                                     currency={currency}
-                                    gateways={gateways}
+                                    gateways={gateways.filter((g) => g.currencies.includes(currency))}
                                     onCancel={() => setChoosing(null)}
                                 />
                             )}

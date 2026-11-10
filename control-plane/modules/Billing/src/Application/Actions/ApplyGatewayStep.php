@@ -17,6 +17,7 @@ final class ApplyGatewayStep
 
         match ($step->kind) {
             GatewayStep::OTP => $payment->forceFill(['status' => PaymentStatus::AwaitingOtp, 'meta' => $meta])->save(),
+            GatewayStep::REDIRECT => $payment->forceFill(['status' => PaymentStatus::AwaitingGateway, 'meta' => $meta])->save(),
             GatewayStep::REVIEW => $payment->forceFill(['status' => PaymentStatus::AwaitingReview, 'meta' => $meta])->save(),
             GatewayStep::FAILED => $payment->forceFill(['status' => PaymentStatus::Failed, 'failure' => $step->message, 'meta' => $meta])->save(),
             GatewayStep::PAID => ($this->activate)($payment->forceFill(['meta' => $meta])),

@@ -24,6 +24,11 @@ final class ManualGateway implements PaymentGateway
         return (bool) config('billing.providers.manual.enabled');
     }
 
+    public function currencies(): array
+    {
+        return (array) config('billing.currencies');
+    }
+
     public function startFields(): array
     {
         return [

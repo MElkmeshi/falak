@@ -24,6 +24,11 @@ final class DemoGateway implements PaymentGateway
         return (bool) config('billing.providers.demo.enabled');
     }
 
+    public function currencies(): array
+    {
+        return (array) config('billing.currencies');
+    }
+
     public function startFields(): array
     {
         return [['name' => 'mobile', 'label' => 'Mobile number', 'type' => 'tel', 'placeholder' => '0912345678']];

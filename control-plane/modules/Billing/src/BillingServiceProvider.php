@@ -2,6 +2,7 @@
 
 namespace Falak\Billing;
 
+use Falak\Billing\Application\Jobs\ReconcilePayments;
 use Falak\Billing\Application\Jobs\SyncSpaces;
 use Falak\Billing\Application\Operator;
 use Falak\Billing\Application\Payments\PaymentGateways;
@@ -10,7 +11,9 @@ use Falak\Billing\Http\Middleware\KeepCustomersInTheirSpace;
 use Falak\Billing\Infrastructure\Payments\AdfaliGateway;
 use Falak\Billing\Infrastructure\Payments\DemoGateway;
 use Falak\Billing\Infrastructure\Payments\ManualGateway;
+use Falak\Billing\Infrastructure\Payments\MoamalatClient;
 use Falak\Billing\Infrastructure\Payments\MoamalatGateway;
+use Falak\Billing\Infrastructure\Payments\OnePayGateway;
 use Falak\Billing\Infrastructure\Payments\PaymobGateway;
 use Falak\Edge\Events\EdgeApplied;
 use Falak\Identity\Contracts\CurrentOrganization;
@@ -19,11 +22,13 @@ use Falak\Identity\Contracts\Role;
 use Falak\Kernel\Support\ModuleServiceProvider;
 use Falak\Kernel\Support\SharedProps;
 use Falak\Servers\Events\ServerProvisioned;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\RateLimiter;
 
 class BillingServiceProvider extends ModuleServiceProvider
 {
@@ -35,6 +40,7 @@ class BillingServiceProvider extends ModuleServiceProvider
             $app->make(DemoGateway::class),
             $app->make(AdfaliGateway::class),
             $app->make(MoamalatGateway::class),
+            ...OnePayGateway::all(),
             $app->make(PaymobGateway::class),
             $app->make(ManualGateway::class),
         ]));
@@ -43,6 +49,16 @@ class BillingServiceProvider extends ModuleServiceProvider
     protected function bootModule(): void
     {
         $this->app->make(Router::class)->pushMiddlewareToGroup('web', KeepCustomersInTheirSpace::class);
+
+        RateLimiter::for('billing-payment-webhooks', fn (Request $request) => Limit::perMinute(120)->by($request->ip()));
+
+        if ($this->app->make(MoamalatGateway::class)->enabled()) {
+            $origin = MoamalatClient::fromConfig()->lightboxOrigin();
+
+            foreach (['script_src', 'frame_src', 'connect_src'] as $directive) {
+                config(["kernel.csp.{$directive}" => [...(array) config("kernel.csp.{$directive}", []), $origin]]);
+            }
+        }
 
         $registry = $this->app->make(PermissionRegistry::class);
         $registry->register('billing.view', [Role::Admin, Role::Developer, Role::Viewer], 'See the plan, the space and payments', 'billing');
@@ -54,6 +70,7 @@ class BillingServiceProvider extends ModuleServiceProvider
 
         $this->callAfterResolving(Schedule::class, function (Schedule $schedule) {
             $schedule->job(new SyncSpaces)->everyMinute()->name('billing:sync-spaces')->withoutOverlapping();
+            $schedule->job(new ReconcilePayments)->everyFiveMinutes()->name('billing:reconcile-payments')->withoutOverlapping();
         });
 
         $this->app->make(SharedProps::class)->register('storefront', fn () => config('billing.landing') ? [

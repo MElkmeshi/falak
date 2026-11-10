@@ -5,6 +5,7 @@ use Falak\Billing\Http\Controllers\BillingController;
 use Falak\Billing\Http\Controllers\CheckoutController;
 use Falak\Billing\Http\Controllers\CustomerController;
 use Falak\Billing\Http\Controllers\LandingController;
+use Falak\Billing\Http\Controllers\MoamalatController;
 use Illuminate\Support\Facades\Route;
 
 if (config('billing.landing')) {
@@ -23,6 +24,8 @@ Route::middleware(['auth', 'org'])->group(function () {
     Route::get('billing', [CustomerController::class, 'plan'])->name('billing.index');
     Route::post('billing/checkout', [CheckoutController::class, 'start'])->name('billing.checkout');
     Route::get('billing/payments/{payment}', [CheckoutController::class, 'show'])->name('billing.payments.show');
+    Route::get('billing/payments/{payment}/moamalat', [MoamalatController::class, 'checkout'])->name('billing.payments.moamalat');
+    Route::post('billing/payments/{payment}/moamalat', [MoamalatController::class, 'complete'])->middleware('throttle:20,1')->name('billing.payments.moamalat.complete');
     Route::post('billing/payments/{payment}/confirm', [CheckoutController::class, 'confirm'])->name('billing.payments.confirm');
     Route::post('billing/apps/{slug}', [BillingController::class, 'deployApp'])->name('billing.apps.deploy');
 

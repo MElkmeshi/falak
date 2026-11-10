@@ -31,7 +31,7 @@ export function Checkout({ plan, currency, gateways, onCancel }: { plan: Plan; c
             </div>
 
             {gateways.length === 0 ? (
-                <p className="text-fg-muted text-sm">No payment method is available right now.</p>
+                <p className="text-fg-muted text-sm">No payment method takes {currency} right now. Try the other currency.</p>
             ) : (
                 <>
                     <Field label="Payment method" error={errors.provider}>

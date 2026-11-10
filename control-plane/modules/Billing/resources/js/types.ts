@@ -39,7 +39,7 @@ export interface PaymentRow {
     provider: string;
     amount: string;
     currency: string;
-    status: 'pending' | 'awaiting_otp' | 'awaiting_review' | 'paid' | 'failed' | 'rejected';
+    status: 'pending' | 'awaiting_otp' | 'awaiting_review' | 'awaiting_gateway' | 'paid' | 'failed' | 'rejected';
     payer: string | null;
     reference: string | null;
     failure: string | null;
@@ -51,6 +51,7 @@ export interface GatewayOption {
     key: string;
     label: string;
     fields: { name: string; label: string; type: string; placeholder?: string }[];
+    currencies: string[];
 }
 
 export interface BillingShared {
@@ -83,6 +84,7 @@ export const PAYMENT_TONE: Record<PaymentRow['status'], 'success' | 'warning' | 
     pending: 'faint',
     awaiting_otp: 'info',
     awaiting_review: 'warning',
+    awaiting_gateway: 'info',
     paid: 'success',
     failed: 'danger',
     rejected: 'danger',

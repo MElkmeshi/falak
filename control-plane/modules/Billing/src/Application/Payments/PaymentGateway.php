@@ -13,6 +13,11 @@ interface PaymentGateway
     public function enabled(): bool;
 
     /**
+     * @return list<string>
+     */
+    public function currencies(): array;
+
+    /**
      * @return list<array{name: string, label: string, type: string, placeholder?: string}>
      */
     public function startFields(): array;

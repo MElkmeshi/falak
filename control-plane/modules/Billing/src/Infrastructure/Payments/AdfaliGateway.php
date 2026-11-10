@@ -24,12 +24,18 @@ final class AdfaliGateway implements PaymentGateway
     {
         $cfg = (array) config('billing.providers.adfali');
 
-        return ($cfg['enabled'] ?? false) && ! empty($cfg['base_url']) && ! empty($cfg['merchant_mobile']);
+        return ($cfg['enabled'] ?? false) && ! empty($cfg['base_url']) && ! empty($cfg['merchant_mobile'])
+            && ! empty($cfg['merchant_pin']) && ! empty($cfg['service_password']);
+    }
+
+    public function currencies(): array
+    {
+        return ['LYD'];
     }
 
     public function startFields(): array
     {
-        return [['name' => 'mobile', 'label' => 'Libyana mobile number', 'type' => 'tel', 'placeholder' => '092XXXXXXX']];
+        return [['name' => 'mobile', 'label' => 'Libyana mobile number (Edfali)', 'type' => 'tel', 'placeholder' => '092XXXXXXX']];
     }
 
     public function start(Payment $payment, array $input): GatewayStep
@@ -42,9 +48,9 @@ final class AdfaliGateway implements PaymentGateway
             throw ValidationException::withMessages(['mobile' => $e->getMessage()]);
         }
 
-        $payment->forceFill(['payer' => $mobile, 'meta' => ['session' => $session]])->save();
+        $payment->forceFill(['payer' => $mobile, 'meta' => [...(array) ($payment->meta ?? []), 'session' => $session]])->save();
 
-        return GatewayStep::otp('Enter the PIN Libyana sent to '.$mobile.' by SMS.', 4);
+        return GatewayStep::otp('Enter the 4-digit PIN Libyana sent to '.$mobile.' by SMS.', 4);
     }
 
     public function confirm(Payment $payment, array $input): GatewayStep
@@ -57,8 +63,8 @@ final class AdfaliGateway implements PaymentGateway
 
         try {
             return $this->client()->confirm($session, trim((string) ($input['otp'] ?? '')))
-                ? GatewayStep::paid('Adfali payment confirmed.')
-                : GatewayStep::failed('Adfali did not confirm the payment.');
+                ? GatewayStep::paid('Edfali payment confirmed.')
+                : GatewayStep::failed('Edfali did not accept this PIN.');
         } catch (RuntimeException $e) {
             return GatewayStep::failed($e->getMessage());
         }
@@ -79,6 +85,6 @@ final class AdfaliGateway implements PaymentGateway
     {
         $cfg = (array) config('billing.providers.adfali');
 
-        return new AdfaliClient((string) $cfg['base_url'], (string) $cfg['merchant_mobile'], (string) $cfg['merchant_pin'], (string) $cfg['service_password']);
+        return new AdfaliClient((string) $cfg['base_url'], (string) $cfg['merchant_mobile'], (string) $cfg['merchant_pin'], (string) $cfg['service_password'], $cfg['proxy'] ?? null);
     }
 }
