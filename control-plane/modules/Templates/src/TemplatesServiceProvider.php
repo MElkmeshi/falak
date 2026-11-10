@@ -15,6 +15,8 @@ use Falak\Templates\Application\Console\RenderTemplateCommand;
 use Falak\Templates\Application\Console\SyncTemplatesCommand;
 use Falak\Templates\Application\Import\HostResolver;
 use Falak\Templates\Application\Import\RemoteFetcher;
+use Falak\Templates\Contracts\TemplateDeployer;
+use Falak\Templates\Infrastructure\CatalogTemplateDeployer;
 use Falak\Templates\Infrastructure\DnsHostResolver;
 use Falak\Templates\Infrastructure\FilesystemCatalog;
 use Falak\Templates\Infrastructure\GuardedHttpFetcher;
@@ -41,6 +43,7 @@ class TemplatesServiceProvider extends ModuleServiceProvider
     public array $bindings = [
         HostResolver::class => DnsHostResolver::class,
         SiteCompose::class => SiteDataCompose::class,
+        TemplateDeployer::class => CatalogTemplateDeployer::class,
     ];
 
     public function register(): void

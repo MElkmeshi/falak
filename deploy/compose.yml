@@ -434,6 +434,8 @@ services:
       FALAK_LOCAL_EDGE: ${FALAK_LOCAL_EDGE:-}
       FALAK_LOCAL_EDGE_UPSTREAM_HTTPS: ${FALAK_LOCAL_EDGE_UPSTREAM_HTTPS:-}
       FALAK_LOCAL_EDGE_UPSTREAM_HTTP: ${FALAK_LOCAL_EDGE_UPSTREAM_HTTP:-}
+      FALAK_SPACE_ROUTER_UPSTREAM_HTTPS: ${FALAK_SPACE_ROUTER_UPSTREAM_HTTPS:-}
+      FALAK_SPACE_ROUTER_UPSTREAM_HTTP: ${FALAK_SPACE_ROUTER_UPSTREAM_HTTP:-}
       FALAK_EDGE_PKI_OUT: /falak/edge-pki
       # Panel over Tailscale only (falak-ctl panel-access): browser paths only from these CIDRs. Unset or empty:
       # everyone (never pass it empty: Caddy would then match no client and refuse the panel to all).
@@ -470,6 +472,25 @@ services:
     deploy:
       resources:
         limits: { memory: 128m }
+
+  space-router:
+    <<: *caps
+    image: ${FALAK_IMAGE_PREFIX}/falak-edge:${FALAK_VERSION}
+    logging: *logging
+    restart: unless-stopped
+    init: true
+    entrypoint: ["caddy", "run", "--config", "/etc/space-router/router.json"]
+    volumes:
+      - ./space-router/router.json:/etc/space-router/router.json:ro
+    networks: [edge, backend]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:2019/config/"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    deploy:
+      resources:
+        limits: { memory: 96m }
 
   # Shared builder of the control-plane host (native builds: PHP/Composer, Node, Bun). Capped so a build can't take the
   # panel down: memory, FALAK_BUILDER_CPUS (falak-ctl: cores - 1, min 1), pids, and killed before any panel service.

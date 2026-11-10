@@ -41,6 +41,7 @@
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/",
             "Falak\\Kernel\\": "modules/Kernel/src/",
+            "Falak\\Billing\\": "modules/Billing/src/",
             "Falak\\Identity\\": "modules/Identity/src/",
             "Falak\\Providers\\": "modules/Providers/src/",
             "Falak\\Fleet\\": "modules/Fleet/src/",
@@ -81,6 +82,7 @@
         "psr-4": {
             "Tests\\": "tests/",
             "Falak\\Kernel\\Tests\\": "modules/Kernel/tests/",
+            "Falak\\Billing\\Tests\\": "modules/Billing/tests/",
             "Falak\\Identity\\Tests\\": "modules/Identity/tests/",
             "Falak\\Providers\\Tests\\": "modules/Providers/tests/",
             "Falak\\Fleet\\Tests\\": "modules/Fleet/tests/",

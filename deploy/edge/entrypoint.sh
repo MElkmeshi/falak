@@ -119,6 +119,12 @@ valid_upstream() {
   return 0
 }
 
+if [ -n "${FALAK_SPACE_ROUTER_UPSTREAM_HTTPS:-}" ] && [ "${FALAK_LOCAL_EDGE:-}" != 1 ]; then
+  FALAK_LOCAL_EDGE=1
+  FALAK_LOCAL_EDGE_UPSTREAM_HTTPS="$FALAK_SPACE_ROUTER_UPSTREAM_HTTPS"
+  FALAK_LOCAL_EDGE_UPSTREAM_HTTP="${FALAK_SPACE_ROUTER_UPSTREAM_HTTP:-}"
+fi
+
 if [ "${FALAK_LOCAL_EDGE:-}" = 1 ]; then
   for v in "${FALAK_LOCAL_EDGE_UPSTREAM_HTTPS:-}" "${FALAK_LOCAL_EDGE_UPSTREAM_HTTP:-}"; do
     valid_upstream "$v" || { echo "falak-edge: FALAK_LOCAL_EDGE=1 needs FALAK_LOCAL_EDGE_UPSTREAM_HTTPS and _HTTP as host:port" >&2; exit 2; }

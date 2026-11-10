@@ -41,6 +41,7 @@ final class Modules
         'Recovery',
         'ControlPlane',
         'Config',
+        'Billing',
     ];
 
     /** Namespaces that are private to a module. */

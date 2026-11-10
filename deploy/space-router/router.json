@@ -1,0 +1,11 @@
+{
+  "admin": { "listen": "0.0.0.0:2019", "origins": ["space-router:2019", "localhost:2019", "127.0.0.1:2019"] },
+  "apps": {
+    "layer4": {
+      "servers": {
+        "https": { "listen": [":8443"], "routes": [{ "handle": [{ "handler": "proxy_protocol" }, { "handler": "subroute", "routes": [] }] }] },
+        "http": { "listen": [":8080"], "routes": [{ "handle": [{ "handler": "proxy_protocol" }, { "handler": "subroute", "routes": [] }] }] }
+      }
+    }
+  }
+}

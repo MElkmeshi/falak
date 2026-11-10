@@ -75,6 +75,6 @@ class RegisteredUserController extends Controller
             $accept($user, (string) $token);
         }
 
-        return redirect(config('fortify.home'));
+        return redirect()->intended(config('fortify.home'));
     }
 }

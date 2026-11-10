@@ -5,9 +5,11 @@ use Inertia\Inertia;
 
 // Framework glue only: module routes live in modules/<Module>/routes and are loaded by each module provider.
 
-Route::get('/', function () {
-    return Inertia::render('welcome');
-})->name('home');
+if (! array_key_exists('/', Route::getRoutes()->get('GET'))) {
+    Route::get('/', function () {
+        return Inertia::render('welcome');
+    })->name('home');
+}
 
 Route::middleware(['auth'])->group(function () {
     // Home is the projects grid (docs/UI_DESIGN.md §3); the old dashboard URL keeps working.
