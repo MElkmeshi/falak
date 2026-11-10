@@ -10,6 +10,7 @@ use Falak\Billing\Domain\Models\Space;
 use Falak\Billing\Domain\Models\Subscription;
 use Falak\Billing\Infrastructure\IncusClient;
 use Falak\Billing\Infrastructure\SpaceRouter;
+use Falak\Billing\Tests\Support\DemoCheckout;
 use Falak\Billing\Tests\Support\FakeIncus;
 use Falak\Billing\Tests\Support\FakeTemplates;
 use Falak\Identity\Contracts\Role;
@@ -27,18 +28,6 @@ beforeEach(function () {
     $this->plan = Plan::query()->where('slug', 'pro')->firstOrFail();
 });
 
-function billing_pay_demo(object $test): Payment
-{
-    $location = $test->post('/billing/checkout', [
-        'plan_id' => $test->plan->id,
-        'provider' => 'demo',
-        'currency' => 'LYD',
-        'fields' => ['mobile' => '0912345678'],
-    ])->assertRedirect()->headers->get('Location');
-
-    return Payment::query()->findOrFail(basename((string) $location));
-}
-
 it('shows the plans on sale', function () {
     $this->get('/billing')->assertOk()->assertInertia(fn (Assert $page) => $page
         ->component('Billing/Customer/Plan', false)
@@ -48,7 +37,7 @@ it('shows the plans on sale', function () {
 });
 
 it('pays with the demo wallet and provisions a space with the plan limits', function () {
-    $payment = billing_pay_demo($this);
+    $payment = DemoCheckout::start($this);
 
     expect($payment->status)->toBe(PaymentStatus::AwaitingOtp)
         ->and($payment->amount)->toBe('50.00')
@@ -82,8 +71,8 @@ it('pays with the demo wallet and provisions a space with the plan limits', func
 });
 
 it('extends the plan when the same plan is paid again', function () {
-    $this->post('/billing/payments/'.billing_pay_demo($this)->id.'/confirm', ['otp' => '123456']);
-    $this->post('/billing/payments/'.billing_pay_demo($this)->id.'/confirm', ['otp' => '123456']);
+    $this->post('/billing/payments/'.DemoCheckout::start($this)->id.'/confirm', ['otp' => '123456']);
+    $this->post('/billing/payments/'.DemoCheckout::start($this)->id.'/confirm', ['otp' => '123456']);
 
     $subscription = Subscription::currentFor($this->organization->id);
     expect((int) round(now()->diffInDays($subscription->ends_at)))->toBe(60)
@@ -123,7 +112,7 @@ it('does not let viewers buy plans', function () {
 });
 
 it('suspends the space when the plan expires', function () {
-    $this->post('/billing/payments/'.billing_pay_demo($this)->id.'/confirm', ['otp' => '123456']);
+    $this->post('/billing/payments/'.DemoCheckout::start($this)->id.'/confirm', ['otp' => '123456']);
     $space = Space::query()->firstOrFail();
 
     Subscription::query()->update(['ends_at' => now()->subMinute()]);
@@ -146,7 +135,7 @@ it('routes each host to its space over layer 4', function () {
 });
 
 it('refuses one-click apps before the space is ready', function () {
-    $this->post('/billing/payments/'.billing_pay_demo($this)->id.'/confirm', ['otp' => '123456']);
+    $this->post('/billing/payments/'.DemoCheckout::start($this)->id.'/confirm', ['otp' => '123456']);
 
     $this->post('/billing/apps/n8n')->assertSessionHasErrors('app');
 });
@@ -154,7 +143,7 @@ it('refuses one-click apps before the space is ready', function () {
 it('only deploys one-click apps that fit in the plan memory', function () {
     $templates = FakeTemplates::install();
     $this->plan = Plan::query()->where('slug', 'starter')->firstOrFail();
-    $this->post('/billing/payments/'.billing_pay_demo($this)->id.'/confirm', ['otp' => '123456']);
+    $this->post('/billing/payments/'.DemoCheckout::start($this)->id.'/confirm', ['otp' => '123456']);
     Space::query()->where('organization_id', $this->organization->id)->update(['status' => SpaceStatus::Ready, 'server_id' => Server::factory()->create(['organization_id' => $this->organization->id])->id]);
 
     $this->get('/store')->assertInertia(fn (Assert $page) => $page

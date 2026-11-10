@@ -9,6 +9,8 @@ use Falak\Billing\Domain\Models\Subscription;
 use Falak\Billing\Infrastructure\IncusClient;
 use Falak\Deployments\Contracts\Data\DeploymentSummary;
 use Falak\Deployments\Contracts\DeploymentDirectory;
+use Falak\Sites\Contracts\ComposeSites;
+use Falak\Sites\Contracts\Data\ComposeServiceState;
 use Falak\Sites\Contracts\Data\SiteData;
 use Falak\Sites\Contracts\SiteDirectory;
 use Throwable;
@@ -20,6 +22,7 @@ final class SpaceOverview
         private readonly SiteDirectory $sites,
         private readonly DeploymentDirectory $deployments,
         private readonly OneClickCatalog $catalog,
+        private readonly ComposeSites $compose,
     ) {}
 
     /**
@@ -49,15 +52,21 @@ final class SpaceOverview
         $sites = $this->sites->forOrganization($organizationId);
         $current = $this->deployments->currentForSites(array_map(fn (SiteData $site) => $site->id, $sites));
 
-        return array_map(fn (SiteData $site) => [
-            'id' => $site->id,
-            'name' => $site->name,
-            'icon' => $site->compose?->template['slug'] ?? null,
-            'url' => $this->urlOf($site),
-            'status' => $this->statusOf($current[$site->id] ?? null),
-            'error' => ($current[$site->id] ?? null)?->status === 'failed' ? 'The last start did not finish. Restart it to try again.' : null,
-            'updated_at' => ($current[$site->id] ?? null)?->createdAt->format(DATE_ATOM),
-        ], $sites);
+        return array_map(function (SiteData $site) use ($current) {
+            $deployment = $current[$site->id] ?? null;
+            $this->compose->refreshStatus($site->id);
+            $status = $this->statusOf($deployment, $this->compose->status($site->id));
+
+            return [
+                'id' => $site->id,
+                'name' => $site->name,
+                'icon' => $site->compose?->template['slug'] ?? null,
+                'url' => $this->urlOf($site),
+                'status' => $status,
+                'error' => $status === 'failed' ? 'The app is not running. Restart it to try again.' : null,
+                'updated_at' => $deployment?->createdAt->format(DATE_ATOM),
+            ];
+        }, $sites);
     }
 
     /**
@@ -123,13 +132,32 @@ final class SpaceOverview
         return $site->testDomain !== null ? 'https://'.$site->testDomain : null;
     }
 
-    private function statusOf(?DeploymentSummary $deployment): string
+    /**
+     * @param  list<ComposeServiceState>  $containers
+     */
+    private function statusOf(?DeploymentSummary $deployment, array $containers): string
     {
-        return match ($deployment?->status) {
-            null => 'stopped',
-            'succeeded' => 'running',
-            'failed', 'cancelled' => 'failed',
-            default => 'starting',
+        if ($deployment !== null && ! in_array($deployment->status, ['succeeded', 'failed', 'cancelled'], true)) {
+            return 'starting';
+        }
+
+        if ($containers === []) {
+            return match ($deployment?->status) {
+                null => 'stopped',
+                'succeeded' => 'starting',
+                default => 'failed',
+            };
+        }
+
+        $states = array_map(fn (ComposeServiceState $container) => $container->state, $containers);
+        $healths = array_map(fn (ComposeServiceState $container) => $container->health, $containers);
+
+        return match (true) {
+            in_array('restarting', $states, true) => 'failed',
+            array_diff($states, ['running']) !== [] => $deployment?->status === 'succeeded' ? 'stopped' : 'failed',
+            in_array('unhealthy', $healths, true) => 'failed',
+            in_array('starting', $healths, true) => 'starting',
+            default => 'running',
         };
     }
 }

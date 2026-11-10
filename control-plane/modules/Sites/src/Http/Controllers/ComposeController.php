@@ -10,9 +10,9 @@ use Falak\Identity\Contracts\OrganizationDirectory;
 use Falak\Kernel\Http\Controller;
 use Falak\Servers\Contracts\ServerDirectory;
 use Falak\Sites\Application\Actions\UpdateComposeSettings;
+use Falak\Sites\Contracts\ComposeSites;
 use Falak\Sites\Contracts\ComposeSource;
 use Falak\Sites\Contracts\SiteRuntime;
-use Falak\Sites\Contracts\TargetStatus;
 use Falak\Sites\Domain\Models\ComposeState;
 use Falak\Sites\Domain\Models\ComposeVersion;
 use Falak\Sites\Domain\Models\OrganizationSettings;
@@ -27,7 +27,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Throwable;
 
 /**
  * Docker Compose sites: Settings → Compose (source, versioned inline file, public services) and the Services tab
@@ -197,7 +196,7 @@ final class ComposeController extends Controller
      * GET /sites/{site}/compose/services — last reported state per server and service; refreshes
      * (docker.compose.ps with stats) when older than sites.compose.status_refresh_seconds.
      */
-    public function services(Request $request, Site $site, AgentGateway $agents, ServerDirectory $servers): JsonResponse|RedirectResponse
+    public function services(Request $request, Site $site, ComposeSites $composeSites, ServerDirectory $servers): JsonResponse|RedirectResponse
     {
         $this->authorize('view', $site);
 
@@ -207,7 +206,7 @@ final class ComposeController extends Controller
 
         $this->ensureCompose($site);
         $site->load('targets');
-        $this->refresh($site, $agents, $request->boolean('refresh'));
+        $composeSites->refreshStatus($site->id, $request->boolean('refresh'));
 
         $states = ComposeState::query()->where('site_id', $site->id)->get()->keyBy('server_id');
         $public = [];
@@ -294,33 +293,6 @@ final class ComposeController extends Controller
         $audit->record('site.compose_restarted', 'site', $site->id, ['service' => $data['service'] ?? null, 'servers' => $serverIds], $site->organization_id);
 
         return response()->json(['data' => ['servers' => $dispatched]], 202);
-    }
-
-    private function refresh(Site $site, AgentGateway $agents, bool $force): void
-    {
-        $every = max(1, (int) config('sites.compose.status_refresh_seconds', 10));
-
-        foreach ($site->targets as $target) {
-            /** @var SiteTarget $target */
-            if ($target->status !== TargetStatus::Ready) {
-                continue;
-            }
-
-            $state = ComposeState::query()->firstOrNew(['site_id' => $site->id, 'server_id' => $target->server_id], ['services' => []]);
-            $pending = $state->command_id !== null && $state->requested_at?->gt(now()->subMinute());
-
-            if ($pending || (! $force && $state->requested_at?->gt(now()->subSeconds($every)))) {
-                continue;
-            }
-
-            try {
-                $handle = $agents->dispatch($target->server_id, 'docker.compose.ps', ['project' => $site->slug, 'stats' => true], 60, "sites.compose.ps:{$site->id}:{$target->server_id}:".Str::ulid());
-            } catch (Throwable) {
-                continue;
-            }
-
-            $state->forceFill(['command_id' => $handle->id, 'requested_at' => now()])->save();
-        }
     }
 
     private function ensureCompose(Site $site): void

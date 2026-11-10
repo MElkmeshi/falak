@@ -92,4 +92,10 @@ interface ComposeSites
      * @return list<ComposeServiceState>
      */
     public function status(string $siteId): array;
+
+    /**
+     * Ask the site's ready servers for a fresh docker.compose.ps, at most once per
+     * sites.compose.status_refresh_seconds unless forced; results arrive through recordStatus.
+     */
+    public function refreshStatus(string $siteId, bool $force = false): void;
 }

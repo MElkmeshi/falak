@@ -3,6 +3,7 @@
 namespace Falak\Sites\Infrastructure\Compose;
 
 use DateTimeImmutable;
+use Falak\Fleet\Contracts\AgentGateway;
 use Falak\Projects\Contracts\ProjectDirectory;
 use Falak\Projects\Contracts\ServiceKind;
 use Falak\Sites\Application\Compose\ComposeNetworks;
@@ -15,18 +16,25 @@ use Falak\Sites\Contracts\Data\ComposeVersionData;
 use Falak\Sites\Contracts\Data\RenderedCompose;
 use Falak\Sites\Contracts\Exceptions\ComposeRenderException;
 use Falak\Sites\Contracts\SiteRuntime;
+use Falak\Sites\Contracts\TargetStatus;
 use Falak\Sites\Domain\Models\ComposeState;
 use Falak\Sites\Domain\Models\ComposeVersion;
 use Falak\Sites\Domain\Models\OrganizationSettings;
 use Falak\Sites\Domain\Models\Site;
+use Falak\Sites\Domain\Models\SiteTarget;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use stdClass;
 use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
+use Throwable;
 
 final class EloquentComposeSites implements ComposeSites
 {
-    public function __construct(private readonly YamlComposeInspector $inspector) {}
+    public function __construct(
+        private readonly YamlComposeInspector $inspector,
+        private readonly AgentGateway $agents,
+    ) {}
 
     public function content(string $siteId, ?int $version = null): ?ComposeVersionData
     {
@@ -346,6 +354,39 @@ final class EloquentComposeSites implements ComposeSites
         }
 
         return $out;
+    }
+
+    public function refreshStatus(string $siteId, bool $force = false): void
+    {
+        $site = Site::query()->with('targets')->find(strtolower($siteId), ['id', 'slug', 'runtime']);
+
+        if ($site === null || $site->runtime !== SiteRuntime::Compose) {
+            return;
+        }
+
+        $every = max(1, (int) config('sites.compose.status_refresh_seconds', 10));
+
+        foreach ($site->targets as $target) {
+            /** @var SiteTarget $target */
+            if ($target->status !== TargetStatus::Ready) {
+                continue;
+            }
+
+            $state = ComposeState::query()->firstOrNew(['site_id' => $site->id, 'server_id' => $target->server_id], ['services' => []]);
+            $pending = $state->command_id !== null && $state->requested_at?->gt(now()->subMinute());
+
+            if ($pending || (! $force && $state->requested_at?->gt(now()->subSeconds($every)))) {
+                continue;
+            }
+
+            try {
+                $handle = $this->agents->dispatch($target->server_id, 'docker.compose.ps', ['project' => $site->slug, 'stats' => true], 60, "sites.compose.ps:{$site->id}:{$target->server_id}:".Str::ulid());
+            } catch (Throwable) {
+                continue;
+            }
+
+            $state->forceFill(['command_id' => $handle->id, 'requested_at' => now()])->save();
+        }
     }
 
     /**
