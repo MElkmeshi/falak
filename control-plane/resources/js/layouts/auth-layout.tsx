@@ -2,7 +2,7 @@ import { useFlashToasts } from '@/components/falak/flash';
 import { FalakMark } from '@/components/falak/logo';
 import { Toaster } from '@/components/falak/toast';
 import { initializeTheme } from '@/hooks/use-appearance';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { useEffect, type ReactNode } from 'react';
 
 interface AuthLayoutProps {
@@ -17,6 +17,7 @@ interface AuthLayoutProps {
 export default function AuthLayout({ title, description, footer, children }: AuthLayoutProps) {
     useFlashToasts();
     useEffect(() => initializeTheme(), []);
+    const brand = useStorefront()?.brand ?? 'Falak';
 
     return (
         <div className="bg-bg relative flex min-h-svh flex-col items-center justify-center px-4 py-10">
@@ -28,10 +29,10 @@ export default function AuthLayout({ title, description, footer, children }: Aut
                 <Link
                     href={route('home')}
                     className="text-fg mx-auto flex items-center gap-2 rounded-md text-base font-semibold tracking-tight"
-                    aria-label="Falak home"
+                    aria-label={`${brand} home`}
                 >
                     <FalakMark size={24} />
-                    Falak
+                    {brand}
                 </Link>
                 <div className="border-border bg-surface-1 shadow-panel grid gap-5 rounded-xl border p-6">
                     <div className="grid gap-1 text-center">
@@ -67,4 +68,8 @@ export function AuthStatus({ children }: { children: ReactNode }) {
             {children}
         </p>
     );
+}
+
+export function useStorefront(): { brand: string } | null {
+    return (usePage().props as { storefront?: { brand: string } | null }).storefront ?? null;
 }

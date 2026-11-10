@@ -56,6 +56,10 @@ class BillingServiceProvider extends ModuleServiceProvider
             $schedule->job(new SyncSpaces)->everyMinute()->name('billing:sync-spaces')->withoutOverlapping();
         });
 
+        $this->app->make(SharedProps::class)->register('storefront', fn () => config('billing.landing') ? [
+            'brand' => config('billing.brand'),
+        ] : null, authenticated: false);
+
         $this->app->make(SharedProps::class)->register('billing', function (Request $request) {
             $organizationId = $this->app->make(CurrentOrganization::class)->id();
 

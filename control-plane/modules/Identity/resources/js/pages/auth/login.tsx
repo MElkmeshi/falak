@@ -2,7 +2,7 @@ import { Button } from '@/components/falak/button';
 import { Checkbox } from '@/components/falak/checkbox';
 import { Field } from '@/components/falak/field';
 import { Input } from '@/components/falak/input';
-import AuthLayout, { AuthLink, AuthStatus } from '@/layouts/auth-layout';
+import AuthLayout, { AuthLink, AuthStatus, useStorefront } from '@/layouts/auth-layout';
 import { type SharedData } from '@/types';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { type FormEventHandler } from 'react';
@@ -16,6 +16,7 @@ interface LoginProps {
 
 export default function Login({ status, canResetPassword, invitation }: LoginProps) {
     const { registration } = usePage<SharedData>().props;
+    const brand = useStorefront()?.brand ?? 'Falak';
     const { data, setData, post, processing, errors, reset } = useForm({ email: '', password: '', remember: false });
 
     const submit: FormEventHandler = (event) => {
@@ -25,7 +26,7 @@ export default function Login({ status, canResetPassword, invitation }: LoginPro
 
     return (
         <AuthLayout
-            title="Log in to Falak"
+            title={`Log in to ${brand}`}
             description="Welcome back."
             footer={
                 registration !== 'closed' && (

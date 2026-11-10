@@ -1,7 +1,7 @@
 import { Button } from '@/components/falak/button';
 import { Field } from '@/components/falak/field';
 import { Input } from '@/components/falak/input';
-import AuthLayout, { AuthLink } from '@/layouts/auth-layout';
+import AuthLayout, { AuthLink, useStorefront } from '@/layouts/auth-layout';
 import { Head, useForm } from '@inertiajs/react';
 import { type FormEventHandler } from 'react';
 
@@ -12,6 +12,7 @@ interface RegisterProps {
 }
 
 export default function Register({ inviteOnly = false, invitation = null }: RegisterProps) {
+    const storefront = useStorefront();
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         email: invitation?.email ?? '',
@@ -33,7 +34,9 @@ export default function Register({ inviteOnly = false, invitation = null }: Regi
                     ? `You're joining ${invitation.organization ?? 'an organization'} on Falak.`
                     : inviteOnly
                       ? 'Sign-up on this Falak needs an invitation: open the link in your invitation email.'
-                      : 'Deploy and observe your apps on your own servers.'
+                      : storefront
+                        ? 'Pick a plan next. Your space is ready about a minute after you pay.'
+                        : 'Deploy and observe your apps on your own servers.'
             }
             footer={
                 <>
@@ -61,7 +64,7 @@ export default function Register({ inviteOnly = false, invitation = null }: Regi
                         value={data.email}
                         onChange={(event) => setData('email', event.target.value)}
                         disabled={processing}
-                        placeholder="you@company.com"
+                        placeholder={storefront ? 'you@example.com' : 'you@company.com'}
                     />
                 </Field>
                 <Field label="Password" error={errors.password}>

@@ -30,7 +30,7 @@ const STEPS = [
         title: 'Pick a plan and pay',
         body: 'Pay in Libyan dinars or Egyptian pounds. Your space starts as soon as the payment clears.',
     },
-    { icon: Server, title: 'Get your own space', body: 'A private server space with its own CPU, memory and disk, ready in about three minutes.' },
+    { icon: Server, title: 'Get your own space', body: 'A private server space with its own CPU, memory and disk, ready about a minute after you pay.' },
     { icon: MousePointerClick, title: 'Deploy in one click', body: 'Launch n8n or another app, or push your own project. HTTPS is set up for you.' },
 ];
 
@@ -155,7 +155,7 @@ export default function Landing({ brand, plans, apps, currencies, payment_method
                                 </Tag>
                             </div>
                             <ol className="mt-5 space-y-3 text-sm">
-                                {['Choose a plan and pay', 'Wait about three minutes for your space', 'Click “Deploy n8n”'].map((step, i) => (
+                                {['Choose a plan and pay', 'Wait about a minute for your space', 'Click “Deploy n8n”'].map((step, i) => (
                                     <li key={step} className="flex items-center gap-3">
                                         <span className="bg-surface-3 text-fg flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-medium">
                                             {i + 1}
