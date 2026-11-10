@@ -66,7 +66,7 @@ return [
             'complete_url' => env('ONEPAY_COMPLETE_URL', 'api/OnlinePaymentServices/CompleteSession'),
             'report_url' => env('ONEPAY_REPORT_URL', 'api/OnlinePaymentServices/AccountReport'),
             'proxy' => env('ONEPAY_PROXY', env('FALAK_PAY_LIBYA_PROXY')),
-            'wallets' => array_values(array_filter(explode(',', (string) env('FALAK_PAY_ONEPAY_WALLETS', 'onepay')))),
+            'wallets' => array_values(array_filter(explode(',', (string) env('FALAK_PAY_ONEPAY_WALLETS', 'yussor_online')))),
         ],
         'moamalat' => [
             'enabled' => (bool) env('FALAK_PAY_MOAMALAT', false),

@@ -160,15 +160,15 @@ it('activates a Moamalat payment only after the bank approves the full amount', 
     $payment = Payment::query()->latest()->firstOrFail();
 
     Http::fake(['tnpg.moamalat.net/*' => Http::sequence()
-        ->push(moamalatTransactions(['Status' => 'Approved', 'MerchantReference' => $payment->id, 'AmountTrxn' => '1.000', 'NetworkReference' => 'N1']))
-        ->push(moamalatTransactions(['Status' => 'Approved', 'MerchantReference' => $payment->id, 'AmountTrxn' => '50.000', 'NetworkReference' => 'N2', 'CardNo' => '6395xxxxxxxx1234'])),
+        ->push(moamalatTransactions(['Status' => 'Approved', 'MerchantReference' => $payment->id, 'AmountTrxn' => '50', 'RRN' => '631400000001']))
+        ->push(moamalatTransactions(['Status' => 'Approved', 'ResCodeDesc' => 'Approved', 'MerchantReference' => $payment->id, 'AmountTrxn' => '50000', 'RRN' => '631400000002', 'CardNo' => '639499XXXXXX1234', 'IsRefund' => false])),
     ]);
 
     $this->post("/billing/payments/{$payment->id}/moamalat", ['network_reference' => 'N1'])->assertRedirect();
     expect($payment->refresh()->status)->toBe(PaymentStatus::AwaitingGateway);
 
     $this->post("/billing/payments/{$payment->id}/moamalat", ['network_reference' => 'N2'])->assertRedirect();
-    expect($payment->refresh())->status->toBe(PaymentStatus::Paid)->reference->toBe('N2')->payer->toBe('6395xxxxxxxx1234');
+    expect($payment->refresh())->status->toBe(PaymentStatus::Paid)->reference->toBe('631400000002')->payer->toBe('639499XXXXXX1234');
     Http::assertSent(fn (Request $r) => $r['MerchantReference'] === $payment->id && $r['NetworkReference'] === 'N2');
 });
 
